@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="New Shoes">
+<title>New Shoes — Lyrics Trainer</title>
+<style>
+/* Force light theme — works in Mail, Safari, and home screen app on all iPads */
+:root {
+  --bg:      #f7f5f2;
+  --bg2:     #edeae5;
+  --bg3:     #e2ddd7;
+  --text:    #1a1814;
+  --text2:   #6b6760;
+  --text3:   #a09d98;
+  --accent:  #a0622a;
+  --accent2: #7a4a1e;
+  --green:   #2e7d52;
+  --green-bg:#e8f5ee;
+  --green-border: #a8d5bc;
+  --red:     #c0392b;
+  --red-bg:  #fdecea;
+  --red-border: #f0a9a3;
+  --blue:    #2563a8;
+  --blue-bg: #e8f0fa;
+  --blue-border: #a8c4e8;
+  --border:  #d0ccc6;
+  --radius:  12px;
+  --radius-sm: 8px;
+}
+
+/* Hard override so iOS Mail / WKWebView cannot inject its own background */
+html {
+  background-color: #f7f5f2 !important;
+}
+body {
+  background-color: #f7f5f2 !important;
+  color: #1a1814 !important;
+  font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  -webkit-text-size-adjust: 100%;
+}
+
+*, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+#app {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 40px 20px 140px;
+}
+
+/* ── Header ── */
+.header { margin-bottom: 32px; }
+.header h1 {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 34px;
+  font-weight: 400;
+  color: var(--text);
+  line-height: 1.15;
+  margin: 0 0 6px;
+}
+.header h1 em { font-style: italic; color: var(--accent); }
+.header p { font-size: 14px; color: var(--text2); margin: 0; }
+
+/* ── Mode buttons ── */
+.mode-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 24px;
+}
+.mode-btn {
+  background: #ffffff;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text2);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 400;
+  padding: 12px 6px;
+  cursor: pointer;
+  text-align: center;
+  line-height: 1.35;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  -webkit-appearance: none;
+}
+.mode-btn .icon { font-size: 18px; display: block; margin-bottom: 3px; }
+.mode-btn:active { background: var(--bg2); }
+.mode-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+  font-weight: 500;
+}
+
+/* ── Progress bar ── */
+.progress-track {
+  height: 3px;
+  background: var(--bg3);
+  border-radius: 2px;
+  margin-bottom: 18px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.35s ease;
+  width: 0%;
+}
+
+/* ── Stats ── */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 24px;
+}
+.stat {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  text-align: center;
+}
+.stat-num { font-size: 24px; font-weight: 600; color: var(--text); line-height: 1; }
+.stat-num.c-green { color: var(--green); }
+.stat-num.c-red   { color: var(--red); }
+.stat-label { font-size: 10px; color: var(--text3); margin-top: 3px; letter-spacing: 0.07em; text-transform: uppercase; }
+
+/* ── Lyrics area ── */
+.section-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text3);
+  margin: 28px 0 8px;
+  padding-left: 2px;
+}
+.lyric-line {
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 2;
+  color: var(--text);
+}
+
+/* ── Word blanks ── */
+.word-blank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg2);
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  min-width: 60px;
+  height: 30px;
+  cursor: pointer;
+  font-size: 15px;
+  padding: 0 8px;
+  vertical-align: middle;
+  position: relative;
+  top: -1px;
+  transition: background 0.12s, border-color 0.12s;
+  color: var(--text);
+}
+.word-blank.active   { background: #fff8f0; border-color: var(--accent); }
+.word-blank.correct  { background: var(--green-bg); border-color: var(--green-border); color: var(--green); font-weight: 500; }
+.word-blank.wrong    { background: var(--red-bg); border-color: var(--red-border); animation: shake 0.28s; }
+.word-blank.revealed { background: var(--blue-bg); border-color: var(--blue-border); color: var(--blue); font-style: italic; }
+
+/* ── Line blanks ── */
+.line-blank {
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  border: 1.5px solid var(--border);
+  border-left: 3px solid var(--border);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: 12px 14px;
+  margin: 3px 0;
+  cursor: pointer;
+  font-size: 15px;
+  color: var(--text3);
+  min-height: 50px;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+.line-blank.active   { border-left-color: var(--accent); background: #fff8f0; color: var(--text2); }
+.line-blank.correct  { background: var(--green-bg); border-color: var(--green-border); border-left-color: var(--green); color: var(--green); font-size: 17px; }
+.line-blank.wrong    { background: var(--red-bg); border-left-color: var(--red); animation: shake 0.28s; }
+.line-blank.revealed { background: var(--blue-bg); border-color: var(--blue-border); border-left-color: var(--blue); color: var(--blue); font-style: italic; font-size: 17px; }
+
+/* ── First-letter mode ── */
+.fl-line {
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  border: 1.5px solid var(--border);
+  border-left: 3px solid var(--border);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: 12px 14px;
+  margin: 3px 0;
+  cursor: pointer;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 13px;
+  color: var(--text2);
+  letter-spacing: 0.05em;
+  min-height: 50px;
+  transition: background 0.12s, border-color 0.12s;
+}
+.fl-line.active   { border-left-color: var(--accent); background: #fff8f0; }
+.fl-line.correct  { background: var(--green-bg); border-color: var(--green-border); border-left-color: var(--green); color: var(--green); font-family: inherit; font-size: 17px; letter-spacing: normal; }
+.fl-line.wrong    { background: var(--red-bg); border-left-color: var(--red); animation: shake 0.28s; }
+.fl-line.revealed { background: var(--blue-bg); border-color: var(--blue-border); border-left-color: var(--blue); color: var(--blue); font-family: inherit; font-style: italic; font-size: 17px; letter-spacing: normal; }
+
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  25%      { transform: translateX(-5px); }
+  75%      { transform: translateX(5px); }
+}
+
+/* ── Fixed input panel ── */
+.input-panel {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: rgba(247,245,242,0.97);
+  border-top: 1px solid var(--border);
+  padding: 14px 20px;
+  padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 200;
+  /* Prevent iOS from treating this as a scroll container */
+  -webkit-overflow-scrolling: auto;
+}
+.input-panel.visible { display: flex; }
+
+.prompt-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text3);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.input-row { display: flex; gap: 8px; align-items: stretch; }
+
+.answer-input {
+  flex: 1;
+  background: #ffffff;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 17px;
+  padding: 13px 14px;
+  outline: none;
+  -webkit-appearance: none;
+  transition: border-color 0.15s;
+}
+.answer-input:focus { border-color: var(--accent); }
+
+.check-btn {
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 13px 20px;
+  cursor: pointer;
+  -webkit-appearance: none;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.check-btn:active { background: var(--accent2); }
+
+.skip-btn {
+  background: #ffffff;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text2);
+  font-family: inherit;
+  font-size: 15px;
+  padding: 13px 16px;
+  cursor: pointer;
+  -webkit-appearance: none;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.skip-btn:active { background: var(--bg2); }
+
+.feedback {
+  font-size: 13px;
+  min-height: 16px;
+  color: var(--text3);
+}
+.feedback.good { color: var(--green); font-weight: 500; }
+.feedback.bad  { color: var(--red); }
+
+/* ── Finish card ── */
+.finish-card {
+  display: none;
+  background: #ffffff;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px 24px;
+  margin-top: 32px;
+  text-align: center;
+}
+.finish-card.show { display: block; }
+.finish-card h3 {
+  font-family: Georgia, serif;
+  font-size: 26px;
+  font-weight: 400;
+  color: var(--accent);
+  margin: 0 0 8px;
+}
+.finish-card p { font-size: 15px; color: var(--text2); margin: 0 0 20px; }
+.restart-btn {
+  background: transparent;
+  border: 1.5px solid var(--accent);
+  border-radius: var(--radius-sm);
+  color: var(--accent);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  padding: 12px 28px;
+  cursor: pointer;
+  -webkit-appearance: none;
+  transition: background 0.15s;
+}
+.restart-btn:active { background: #fff0e6; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <h1><em>New Shoes</em><br>Paolo Nutini</h1>
+    <p>Tap a blank to start — the keyboard stays up between answers</p>
+  </div>
+
+  <div class="mode-row">
+    <button class="mode-btn active" onclick="setMode('full',this)">
+      <span class="icon">📖</span>Full lyrics
+    </button>
+    <button class="mode-btn" onclick="setMode('words',this)">
+      <span class="icon">✏️</span>Missing words
+    </button>
+    <button class="mode-btn" onclick="setMode('lines',this)">
+      <span class="icon">🎵</span>Missing lines
+    </button>
+    <button class="mode-btn" onclick="setMode('fl',this)">
+      <span class="icon">🔤</span>First letters
+    </button>
+  </div>
+
+  <div class="progress-track"><div class="progress-fill" id="prog"></div></div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-num c-green" id="s-correct">0</div>
+      <div class="stat-label">Correct</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num c-red" id="s-wrong">0</div>
+      <div class="stat-label">Wrong</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num" id="s-left">0</div>
+      <div class="stat-label">Left</div>
+    </div>
+  </div>
+
+  <div id="lyrics"></div>
+  <div class="finish-card" id="finish">
+    <h3 id="finish-title">Well done!</h3>
+    <p id="finish-msg"></p>
+    <button class="restart-btn" onclick="restart()">Try again</button>
+  </div>
+</div>
+
+<!-- Input panel: always in DOM, shown/hidden via class only (never display:none while in session) -->
+<div class="input-panel" id="panel">
+  <div class="prompt-label" id="prompt-lbl">Type your answer</div>
+  <div class="input-row">
+    <input class="answer-input" id="ans" type="text"
+      autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+      placeholder="type here…" />
+    <button class="check-btn" onclick="checkAnswer()">Check</button>
+    <button class="skip-btn" onclick="skipCurrent()">Skip</button>
+  </div>
+  <div class="feedback" id="fb"></div>
+</div>
+
+<script>
+'use strict';
+
+const LYRICS = [
+  { section: 'Verse 1', lines: [
+    "Woke up cold one Tuesday",
+    "I'm looking tired and feeling quite sick",
+    "I felt like there was something missing",
+    "In my day to day life",
+    "So I quickly opened the wardrobe",
+    "Pulled out some jeans and a T-shirt that seemed clean",
+    "Topped it off with a pair of old shoes",
+    "That were ripped around the seams",
+    "And I thought these shoes just don't suit me"
+  ]},
+  { section: 'Chorus', lines: [
+    "Hey, I put some new shoes on",
+    "And suddenly everything's right",
+    "I said, hey, I put some new shoes on",
+    "And everybody's smiling, it's so inviting",
+    "Oh, short on money but long on time",
+    "Slowly strolling in the sweet sunshine",
+    "And I'm running late and I don't need an excuse",
+    "'Cause I'm wearing my brand new shoes"
+  ]},
+  { section: 'Verse 2', lines: [
+    "Woke up late one Thursday",
+    "I'm seeing stars as I'm rubbing my eyes",
+    "And I felt like there were two days missing",
+    "As I focused on the time",
+    "And I made my way to the kitchen",
+    "But had to stop from the shock of what I found",
+    "A room full of all of my friends all dancing round and round",
+    "And I thought hello new shoes, bye bye blues"
+  ]},
+  { section: 'Chorus', lines: [
+    "Hey, I put some new shoes on",
+    "And suddenly everything's right",
+    "I said, hey, I put some new shoes on",
+    "And everybody's smiling, it's so inviting",
+    "Oh, short on money but long on time",
+    "Slowly strolling in the sweet sunshine",
+    "And I'm running late and I don't need an excuse",
+    "'Cause I'm wearing my brand new shoes"
+  ]},
+  { section: 'Bridge', lines: [
+    "Take me wandering through these streets",
+    "Where bright lights and angels meet",
+    "Stone to stone they take me on",
+    "I'm walking till the break of dawn",
+    "Take me wandering through these streets",
+    "Where bright lights and angels meet",
+    "Stone to stone they take me on",
+    "I'm walking till the break of dawn"
+  ]},
+  { section: 'Outro', lines: [
+    "Hey, I put some new shoes on",
+    "And suddenly everything's right",
+    "I said, hey, I put some new shoes on",
+    "And everybody's smiling, it's so inviting",
+    "Oh, short on money but long on time",
+    "Slowly strolling in the sweet sunshine",
+    "And I'm running late and I don't need an excuse",
+    "'Cause I'm wearing my brand new shoes"
+  ]}
+];
+
+const KEYWORDS = new Set([
+  'tuesday','thursday','cold','late','tired','sick','missing','wardrobe','jeans',
+  'clean','ripped','seams','suit','shoes','suddenly','right','smiling','inviting',
+  'money','time','strolling','sunshine','excuse','brand','stars','rubbing','focused',
+  'kitchen','shock','found','dancing','round','blues','wandering','streets','bright',
+  'lights','angels','stone','dawn','woke','looking','feeling','quickly','opened',
+  'pulled','topped','pair','everybody','slowly','wearing','seeing','hello','bye'
+]);
+
+let mode = 'full';
+let blanks = [];
+let currentIdx = null;
+let correct = 0, wrong = 0;
+let inSession = false;
+
+/* ── Utilities ── */
+function norm(s) {
+  return s.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
+}
+
+function firstLetters(line) {
+  return line.split(' ').map(w => {
+    const bare = w.replace(/[^a-zA-Z0-9]/g, '');
+    if (!bare) return w;
+    return bare[0] + '_'.repeat(Math.max(1, bare.length - 1));
+  }).join(' ');
+}
+
+/* ── Mode / reset ── */
+function setMode(m, btn) {
+  mode = m;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  endSession();
+  resetState();
+  renderLyrics();
+}
+
+function restart() {
+  endSession();
+  resetState();
+  renderLyrics();
+}
+
+function resetState() {
+  correct = 0; wrong = 0; currentIdx = null;
+  document.getElementById('s-correct').textContent = '0';
+  document.getElementById('s-wrong').textContent   = '0';
+  document.getElementById('s-left').textContent    = '0';
+  document.getElementById('prog').style.width = '0%';
+  document.getElementById('finish').classList.remove('show');
+  document.getElementById('fb').textContent = '';
+  document.getElementById('fb').className = 'feedback';
+  document.getElementById('ans').value = '';
+}
+
+function endSession() {
+  inSession = false;
+  document.getElementById('panel').classList.remove('visible');
+  // Safe to blur now — session over
+  try { document.getElementById('ans').blur(); } catch(e) {}
+}
+
+/* ── Render ── */
+function renderLyrics() {
+  const container = document.getElementById('lyrics');
+  container.innerHTML = '';
+  blanks = [];
+
+  LYRICS.forEach(sec => {
+    const lbl = document.createElement('div');
+    lbl.className = 'section-label';
+    lbl.textContent = sec.section;
+    container.appendChild(lbl);
+
+    sec.lines.forEach((line, li) => {
+      if (mode === 'full') {
+        const p = mkDiv('lyric-line');
+        p.textContent = line;
+        container.appendChild(p);
+
+      } else if (mode === 'words') {
+        const p = mkDiv('lyric-line');
+        line.split(' ').forEach((w, wi, arr) => {
+          const bare = w.toLowerCase().replace(/[^a-z]/g, '');
+          if (KEYWORDS.has(bare)) {
+            const bi = blanks.length;
+            const span = document.createElement('span');
+            span.className = 'word-blank';
+            span.style.minWidth = Math.max(60, w.length * 10 + 16) + 'px';
+            addTapHandler(span, bi);
+            blanks.push({ type: 'word', answer: w, el: span, state: 'blank' });
+            p.appendChild(span);
+          } else {
+            p.appendChild(document.createTextNode(w));
+          }
+          if (wi < arr.length - 1) p.appendChild(document.createTextNode(' '));
+        });
+        container.appendChild(p);
+
+      } else if (mode === 'lines') {
+        if (li % 2 === 1) {
+          const bi = blanks.length;
+          const div = mkDiv('line-blank');
+          div.textContent = 'tap to fill in this line…';
+          addTapHandler(div, bi);
+          blanks.push({ type: 'line', answer: line, el: div, state: 'blank' });
+          container.appendChild(div);
+        } else {
+          const p = mkDiv('lyric-line');
+          p.textContent = line;
+          container.appendChild(p);
+        }
+
+      } else if (mode === 'fl') {
+        const bi = blanks.length;
+        const div = mkDiv('fl-line');
+        div.textContent = firstLetters(line);
+        addTapHandler(div, bi);
+        blanks.push({ type: 'line', answer: line, el: div, state: 'blank' });
+        container.appendChild(div);
+      }
+    });
+  });
+
+  updateStats();
+}
+
+function mkDiv(cls) {
+  const d = document.createElement('div');
+  d.className = cls;
+  return d;
+}
+
+// Use touchend + onclick. touchend preventDefault stops the 300ms click delay
+// AND stops the browser from moving focus away from the input on iOS.
+function addTapHandler(el, bi) {
+  el.addEventListener('touchend', function(e) {
+    e.preventDefault();
+    handleBlankTap(bi);
+  }, { passive: false });
+  el.addEventListener('click', function() {
+    handleBlankTap(bi);
+  });
+}
+
+/* ── Blank selection ── */
+function handleBlankTap(bi) {
+  if (!blanks[bi] || blanks[bi].state !== 'blank') return;
+
+  if (!inSession) {
+    // First tap — start session and show panel.
+    // focus() here is safe: called synchronously inside a user-gesture handler.
+    inSession = true;
+    document.getElementById('panel').classList.add('visible');
+    activateBlank(bi);
+    document.getElementById('ans').focus();
+  } else {
+    // Already in session: switch blank WITHOUT touching focus at all.
+    activateBlank(bi);
+  }
+}
+
+function activateBlank(bi) {
+  // Clear old highlight
+  if (currentIdx !== null && blanks[currentIdx]) {
+    blanks[currentIdx].el.classList.remove('active');
+  }
+  currentIdx = bi;
+  blanks[bi].el.classList.add('active');
+
+  // Update prompt label
+  const isLine = blanks[bi].type === 'line';
+  document.getElementById('prompt-lbl').textContent = isLine ? 'Type the full line' : 'Type the missing word';
+
+  // Clear input text and feedback — do NOT touch focus
+  document.getElementById('ans').value = '';
+  setFeedback('', '');
+
+  // Scroll blank into view without disturbing focus.
+  // We deliberately avoid scrollIntoView() as it can trigger blur on iOS.
+  setTimeout(function() {
+    if (!blanks[bi]) return;
+    const rect = blanks[bi].el.getBoundingClientRect();
+    const panelH = document.getElementById('panel').offsetHeight || 120;
+    const safeBottom = window.innerHeight - panelH - 16;
+    if (rect.top < 80) {
+      window.scrollBy({ top: rect.top - 100, behavior: 'smooth' });
+    } else if (rect.bottom > safeBottom) {
+      window.scrollBy({ top: rect.bottom - safeBottom + 16, behavior: 'smooth' });
+    }
+  }, 50);
+}
+
+/* ── Checking / skipping ── */
+function checkAnswer() {
+  if (currentIdx === null) return;
+  const b = blanks[currentIdx];
+  const val = document.getElementById('ans').value.trim();
+  if (!val) return;
+
+  if (norm(val) === norm(b.answer)) {
+    markBlank(currentIdx, 'correct');
+    correct++;
+    setFeedback('Correct!', 'good');
+    updateStats();
+    currentIdx = null;
+    advanceToNext();
+  } else {
+    b.el.classList.add('wrong');
+    setTimeout(function() { b.el.classList.remove('wrong'); }, 320);
+    wrong++;
+    setFeedback('Not quite — try again, or tap Skip', 'bad');
+    document.getElementById('ans').value = '';
+    updateStats();
+  }
+}
+
+function skipCurrent() {
+  if (currentIdx === null) return;
+  markBlank(currentIdx, 'revealed');
+  currentIdx = null;
+  setFeedback('', '');
+  updateStats();
+  advanceToNext();
+}
+
+function markBlank(bi, state) {
+  const b = blanks[bi];
+  b.state = state;
+  b.el.classList.remove('active');
+  // Replace all classes cleanly
+  const base = b.el.className.split(' ')[0];
+  b.el.className = base + ' ' + state;
+  b.el.textContent = b.answer;
+  // Remove tap handlers
+  const fresh = b.el.cloneNode(true);
+  b.el.parentNode.replaceChild(fresh, b.el);
+  b.el = fresh; // keep reference updated
+}
+
+function advanceToNext() {
+  const next = blanks.findIndex(function(b) { return b.state === 'blank'; });
+  if (next !== -1) {
+    // Just update UI — do NOT call focus() so keyboard stays up on iOS
+    activateBlank(next);
+  } else {
+    // All done
+    endSession();
+    showFinish();
+  }
+}
+
+function showFinish() {
+  const total = blanks.length;
+  const pct = total ? Math.round(correct / total * 100) : 0;
+  document.getElementById('finish-title').textContent =
+    pct === 100 ? 'Perfect score!' : pct >= 70 ? 'Great job!' : 'Keep practising';
+  document.getElementById('finish-msg').textContent =
+    pct === 100
+      ? 'Every blank nailed. Try a harder mode!'
+      : correct + ' of ' + total + ' correct (' + pct + '%). Run it again!';
+  const card = document.getElementById('finish');
+  card.classList.add('show');
+  setTimeout(function() {
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 100);
+}
+
+/* ── Stats ── */
+function updateStats() {
+  const rem = blanks.filter(function(b) { return b.state === 'blank'; }).length;
+  document.getElementById('s-correct').textContent = correct;
+  document.getElementById('s-wrong').textContent   = wrong;
+  document.getElementById('s-left').textContent    = rem;
+  const total = blanks.length;
+  const pct = total ? Math.round((total - rem) / total * 100) : 0;
+  document.getElementById('prog').style.width = pct + '%';
+}
+
+function setFeedback(msg, cls) {
+  const el = document.getElementById('fb');
+  el.textContent = msg;
+  el.className = 'feedback' + (cls ? ' ' + cls : '');
+}
+
+/* ── Input events ── */
+document.getElementById('ans').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') { e.preventDefault(); checkAnswer(); }
+});
+
+// iOS focus-reclaim guard: if the input loses focus while we're in a session,
+// reclaim it after a short tick (gives touchend handlers time to run first).
+document.getElementById('ans').addEventListener('blur', function() {
+  if (!inSession) return;
+  setTimeout(function() {
+    if (inSession) {
+      try { document.getElementById('ans').focus(); } catch(e) {}
+    }
+  }, 100);
+});
+
+/* ── Boot ── */
+renderLyrics();
+</script>
+</body>
+</html>
