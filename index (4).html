@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="New Shoes">
+<title>New Shoes — Lyrics Trainer</title>
+<style>
+:root {
+  --bg:           #f7f5f2;
+  --bg2:          #edeae5;
+  --bg3:          #e2ddd7;
+  --text:         #1a1814;
+  --text2:        #6b6760;
+  --text3:        #a09d98;
+  --accent:       #a0622a;
+  --accent2:      #7a4a1e;
+  --green:        #2e7d52;
+  --green-bg:     #e8f5ee;
+  --green-border: #a8d5bc;
+  --red:          #c0392b;
+  --red-bg:       #fdecea;
+  --red-border:   #f0a9a3;
+  --blue:         #2563a8;
+  --blue-bg:      #e8f0fa;
+  --blue-border:  #a8c4e8;
+  --border:       #d0ccc6;
+  --radius:       12px;
+  --radius-sm:    8px;
+}
+
+html { background-color: #f7f5f2 !important; }
+body {
+  background-color: #f7f5f2 !important;
+  color: #1a1814 !important;
+  font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  min-height: 100vh;
+  margin: 0; padding: 0;
+  -webkit-text-size-adjust: 100%;
+}
+*, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+#app { max-width: 760px; margin: 0 auto; padding: 40px 20px 80px; }
+
+.header { margin-bottom: 32px; }
+.header h1 {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 34px; font-weight: 400; color: var(--text); line-height: 1.15; margin: 0 0 6px;
+}
+.header h1 em { font-style: italic; color: var(--accent); }
+.header p { font-size: 14px; color: var(--text2); margin: 0; }
+
+.mode-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 24px; }
+.mode-btn {
+  background: #fff; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+  color: var(--text2); font-family: inherit; font-size: 12px; font-weight: 400;
+  padding: 12px 6px; cursor: pointer; text-align: center; line-height: 1.35; -webkit-appearance: none;
+}
+.mode-btn .icon { font-size: 18px; display: block; margin-bottom: 3px; }
+.mode-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 500; }
+
+.progress-track { height: 3px; background: var(--bg3); border-radius: 2px; margin-bottom: 18px; overflow: hidden; }
+.progress-fill  { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.35s; width: 0%; }
+
+.stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 24px; }
+.stat  { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; text-align: center; }
+.stat-num { font-size: 24px; font-weight: 600; color: var(--text); line-height: 1; }
+.stat-num.c-green { color: var(--green); }
+.stat-num.c-red   { color: var(--red); }
+.stat-label { font-size: 10px; color: var(--text3); margin-top: 3px; letter-spacing: 0.07em; text-transform: uppercase; }
+
+.section-label {
+  font-size: 10px; font-weight: 600; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--text3); margin: 28px 0 8px; padding-left: 2px;
+}
+.lyric-line { font-size: 18px; font-weight: 400; line-height: 2.2; color: var(--text); }
+
+/* ── contenteditable word blank ── */
+.word-blank {
+  display: inline-block;
+  min-width: 60px; height: 32px; line-height: 30px;
+  padding: 0 8px; vertical-align: middle; position: relative; top: -1px;
+  background: var(--bg2); border: 1.5px solid var(--border); border-radius: 6px;
+  font-size: 16px; color: var(--text); cursor: text; outline: none;
+  -webkit-user-modify: read-write-plaintext-only;
+  white-space: nowrap; overflow: hidden;
+}
+.word-blank:empty::before {
+  content: ''; pointer-events: none;
+}
+.word-blank:focus   { background: #fff8f0; border-color: var(--accent); }
+.word-blank.correct { background: var(--green-bg); border-color: var(--green-border); color: var(--green); font-weight: 500; cursor: default; pointer-events: none; }
+.word-blank.wrong   { background: var(--red-bg);  border-color: var(--red-border); animation: shake 0.28s; }
+.word-blank.revealed{ background: var(--blue-bg); border-color: var(--blue-border); color: var(--blue); font-style: italic; cursor: default; pointer-events: none; }
+
+/* ── contenteditable line blank ── */
+.line-blank {
+  display: block; width: 100%; min-height: 52px;
+  padding: 13px 14px; margin: 3px 0;
+  background: #fff; border: 1.5px solid var(--border); border-left: 3px solid var(--border);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 17px; color: var(--text3); cursor: text; outline: none;
+  -webkit-user-modify: read-write-plaintext-only;
+  white-space: pre-wrap; word-break: break-word;
+}
+.line-blank:empty::before {
+  content: 'tap and type this line…'; color: var(--text3); font-style: italic; pointer-events: none;
+}
+.line-blank:focus   { border-left-color: var(--accent); background: #fff8f0; color: var(--text); }
+.line-blank.correct { background: var(--green-bg); border-color: var(--green-border); border-left-color: var(--green); color: var(--green); cursor: default; pointer-events: none; }
+.line-blank.wrong   { background: var(--red-bg); border-left-color: var(--red); animation: shake 0.28s; }
+.line-blank.revealed{ background: var(--blue-bg); border-color: var(--blue-border); border-left-color: var(--blue); color: var(--blue); font-style: italic; cursor: default; pointer-events: none; }
+
+/* ── First-letters hint row ── */
+.fl-hint {
+  display: block; width: 100%; padding: 10px 14px; margin: 3px 0 1px;
+  background: #fff; border: 1.5px solid var(--border); border-left: 3px solid var(--border);
+  border-radius: 0 var(--radius-sm) 0 0;
+  font-family: 'Courier New', Courier, monospace; font-size: 13px;
+  color: var(--text2); letter-spacing: 0.05em;
+}
+.fl-hint.active { border-left-color: var(--accent); background: #fff8f0; }
+.fl-hint.done   { display: none; }
+
+/* ── First-letters answer input ── */
+.fl-input {
+  display: none; width: 100%; min-height: 52px;
+  padding: 13px 14px; margin: 0 0 3px;
+  background: #fff8f0; border: 1.5px solid var(--accent); border-left: 3px solid var(--accent);
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  font-size: 17px; color: var(--text); cursor: text; outline: none;
+  -webkit-user-modify: read-write-plaintext-only;
+  white-space: pre-wrap; word-break: break-word;
+}
+.fl-input.visible { display: block; }
+.fl-input:empty::before { content: 'type the line…'; color: var(--text3); font-style: italic; pointer-events: none; }
+.fl-result {
+  display: none; width: 100%; padding: 13px 14px; margin: 0 0 3px;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  font-size: 17px;
+}
+.fl-result.correct { display: block; background: var(--green-bg); border: 1.5px solid var(--green-border); border-left: 3px solid var(--green); color: var(--green); }
+.fl-result.revealed{ display: block; background: var(--blue-bg);  border: 1.5px solid var(--blue-border);  border-left: 3px solid var(--blue);  color: var(--blue); font-style: italic; }
+
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  25%      { transform: translateX(-5px); }
+  75%      { transform: translateX(5px); }
+}
+
+/* Feedback bar */
+#feedback-bar {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: rgba(247,245,242,0.97); border-top: 1px solid var(--border);
+  padding: 10px 20px calc(10px + env(safe-area-inset-bottom,0px));
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; z-index: 200; min-height: 50px;
+}
+#feedback-bar.hidden { display: none; }
+#fb-text { font-size: 14px; color: var(--text3); flex: 1; }
+#fb-text.good { color: var(--green); font-weight: 500; }
+#fb-text.bad  { color: var(--red); }
+.skip-btn {
+  background: #fff; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+  color: var(--text2); font-family: inherit; font-size: 14px;
+  padding: 8px 16px; cursor: pointer; -webkit-appearance: none; white-space: nowrap;
+}
+.skip-btn:active { background: var(--bg2); }
+
+/* Finish */
+.finish-card { display: none; background: #fff; border: 1.5px solid var(--border); border-radius: var(--radius); padding: 28px 24px; margin-top: 32px; text-align: center; }
+.finish-card.show { display: block; }
+.finish-card h3 { font-family: Georgia, serif; font-size: 26px; font-weight: 400; color: var(--accent); margin: 0 0 8px; }
+.finish-card p  { font-size: 15px; color: var(--text2); margin: 0 0 20px; }
+.restart-btn {
+  background: transparent; border: 1.5px solid var(--accent); border-radius: var(--radius-sm);
+  color: var(--accent); font-family: inherit; font-size: 15px; font-weight: 500;
+  padding: 12px 28px; cursor: pointer; -webkit-appearance: none;
+}
+.restart-btn:active { background: #fff0e6; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <h1><em>New Shoes</em><br>Paolo Nutini</h1>
+    <p>Tap any blank and type directly into it</p>
+  </div>
+  <div class="mode-row">
+    <button class="mode-btn active" onclick="setMode('full',this)"><span class="icon">📖</span>Full lyrics</button>
+    <button class="mode-btn" onclick="setMode('words',this)"><span class="icon">✏️</span>Missing words</button>
+    <button class="mode-btn" onclick="setMode('lines',this)"><span class="icon">🎵</span>Missing lines</button>
+    <button class="mode-btn" onclick="setMode('fl',this)"><span class="icon">🔤</span>First letters</button>
+  </div>
+  <div class="progress-track"><div class="progress-fill" id="prog"></div></div>
+  <div class="stats">
+    <div class="stat"><div class="stat-num c-green" id="s-correct">0</div><div class="stat-label">Correct</div></div>
+    <div class="stat"><div class="stat-num c-red"   id="s-wrong">0</div><div class="stat-label">Wrong</div></div>
+    <div class="stat"><div class="stat-num"          id="s-left">0</div><div class="stat-label">Left</div></div>
+  </div>
+  <div id="lyrics"></div>
+  <div class="finish-card" id="finish">
+    <h3 id="finish-title">Well done!</h3>
+    <p id="finish-msg"></p>
+    <button class="restart-btn" onclick="restart()">Try again</button>
+  </div>
+</div>
+
+<div id="feedback-bar" class="hidden">
+  <span id="fb-text"></span>
+  <button class="skip-btn" onclick="skipCurrent()">Skip</button>
+</div>
+
+<script>
+'use strict';
+
+const LYRICS = [
+  { section:'Verse 1', lines:[
+    "Woke up cold one Tuesday",
+    "I'm looking tired and feeling quite sick",
+    "I felt like there was something missing",
+    "In my day to day life",
+    "So I quickly opened the wardrobe",
+    "Pulled out some jeans and a T-shirt that seemed clean",
+    "Topped it off with a pair of old shoes",
+    "That were ripped around the seams",
+    "And I thought these shoes just don't suit me"
+  ]},
+  { section:'Chorus', lines:[
+    "Hey, I put some new shoes on",
+    "And suddenly everything's right",
+    "I said, hey, I put some new shoes on",
+    "And everybody's smiling, it's so inviting",
+    "Oh, short on money but long on time",
+    "Slowly strolling in the sweet sunshine",
+    "And I'm running late and I don't need an excuse",
+    "'Cause I'm wearing my brand new shoes"
+  ]},
+  { section:'Verse 2', lines:[
+    "Woke up late one Thursday",
+    "I'm seeing stars as I'm rubbing my eyes",
+    "And I felt like there were two days missing",
+    "As I focused on the time",
+    "And I made my way to the kitchen",
+    "But had to stop from the shock of what I found",
+    "A room full of all of my friends all dancing round and round",
+    "And I thought hello new shoes, bye bye blues"
+  ]},
+  { section:'Chorus', lines:[
+    "Hey, I put some new shoes on",
+    "And suddenly everything's right",
+    "I said, hey, I put some new shoes on",
+    "And everybody's smiling, it's so inviting",
+    "Oh, short on money but long on time",
+    "Slowly strolling in the sweet sunshine",
+    "And I'm running late and I don't need an excuse",
+    "'Cause I'm wearing my brand new shoes"
+  ]},
+  { section:'Bridge', lines:[
+    "Take me wandering through these streets",
+    "Where bright lights and angels meet",
+    "Stone to stone they take me on",
+    "I'm walking till the break of dawn",
+    "Take me wandering through these streets",
+    "Where bright lights and angels meet",
+    "Stone to stone they take me on",
+    "I'm walking till the break of dawn"
+  ]},
+  { section:'Outro', lines:[
+    "Hey, I put some new shoes on",
+    "And suddenly everything's right",
+    "I said, hey, I put some new shoes on",
+    "And everybody's smiling, it's so inviting",
+    "Oh, short on money but long on time",
+    "Slowly strolling in the sweet sunshine",
+    "And I'm running late and I don't need an excuse",
+    "'Cause I'm wearing my brand new shoes"
+  ]}
+];
+
+const KEYWORDS = new Set([
+  'tuesday','thursday','cold','late','tired','sick','missing','wardrobe','jeans',
+  'clean','ripped','seams','suit','shoes','suddenly','right','smiling','inviting',
+  'money','time','strolling','sunshine','excuse','brand','stars','rubbing','focused',
+  'kitchen','shock','found','dancing','round','blues','wandering','streets','bright',
+  'lights','angels','stone','dawn','woke','looking','feeling','quickly','opened',
+  'pulled','topped','pair','everybody','slowly','wearing','seeing','hello','bye'
+]);
+
+let mode = 'full';
+let blanks = [];
+let currentIdx = null;
+let correct = 0, wrong = 0;
+
+function norm(s) {
+  return s.toLowerCase().replace(/[^a-z0-9\s]/g,'').replace(/\s+/g,' ').trim();
+}
+function firstLetters(line) {
+  return line.split(' ').map(w => {
+    const b = w.replace(/[^a-zA-Z0-9]/g,'');
+    return b ? b[0]+'_'.repeat(Math.max(1,b.length-1)) : w;
+  }).join(' ');
+}
+
+function setMode(m, btn) {
+  mode = m;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  resetAll();
+}
+function restart() { resetAll(); }
+function resetAll() {
+  correct = 0; wrong = 0; currentIdx = null;
+  hideFeedback();
+  document.getElementById('finish').classList.remove('show');
+  document.getElementById('prog').style.width = '0%';
+  ['s-correct','s-wrong','s-left'].forEach(id => document.getElementById(id).textContent = '0');
+  renderLyrics();
+}
+
+/* ── Render ── */
+function renderLyrics() {
+  const container = document.getElementById('lyrics');
+  container.innerHTML = '';
+  blanks = [];
+
+  LYRICS.forEach(sec => {
+    const lbl = document.createElement('div');
+    lbl.className = 'section-label';
+    lbl.textContent = sec.section;
+    container.appendChild(lbl);
+
+    sec.lines.forEach((line, li) => {
+      if (mode === 'full') {
+        const p = document.createElement('div');
+        p.className = 'lyric-line';
+        p.textContent = line;
+        container.appendChild(p);
+
+      } else if (mode === 'words') {
+        const p = document.createElement('div');
+        p.className = 'lyric-line';
+        line.split(' ').forEach((w, wi, arr) => {
+          const bare = w.toLowerCase().replace(/[^a-z]/g,'');
+          if (KEYWORDS.has(bare)) {
+            const bi = blanks.length;
+            const el = document.createElement('span');
+            el.className = 'word-blank';
+            el.contentEditable = 'true';
+            
+            el.setAttribute('autocorrect','off');
+            el.setAttribute('autocapitalize','off');
+            el.setAttribute('spellcheck','false');
+            el.style.minWidth = Math.max(60, w.length*11+16)+'px';
+            wireEditable(el, bi, 'word');
+            blanks.push({ answer:w, el, state:'blank', type:'word' });
+            p.appendChild(el);
+          } else {
+            p.appendChild(document.createTextNode(w));
+          }
+          if (wi < arr.length-1) p.appendChild(document.createTextNode(' '));
+        });
+        container.appendChild(p);
+
+      } else if (mode === 'lines') {
+        if (li % 2 === 1) {
+          const bi = blanks.length;
+          const el = document.createElement('div');
+          el.className = 'line-blank';
+          el.contentEditable = 'true';
+          el.setAttribute('autocorrect','off');
+          el.setAttribute('autocapitalize','off');
+          el.setAttribute('spellcheck','false');
+          wireEditable(el, bi, 'line');
+          blanks.push({ answer:line, el, state:'blank', type:'line' });
+          container.appendChild(el);
+        } else {
+          const p = document.createElement('div');
+          p.className = 'lyric-line';
+          p.textContent = line;
+          container.appendChild(p);
+        }
+
+      } else if (mode === 'fl') {
+        const bi = blanks.length;
+
+        // Hint row (shows first letters, not editable)
+        const hint = document.createElement('div');
+        hint.className = 'fl-hint';
+        hint.textContent = firstLetters(line);
+
+        // Answer input (contenteditable, shown when hint is tapped)
+        const ans = document.createElement('div');
+        ans.className = 'fl-input';
+        ans.contentEditable = 'true';
+        ans.setAttribute('autocorrect','off');
+        ans.setAttribute('autocapitalize','off');
+        ans.setAttribute('spellcheck','false');
+
+        // Result display
+        const result = document.createElement('div');
+        result.className = 'fl-result';
+
+        // Tap hint to open answer box
+        const openAns = () => {
+          if (blanks[bi].state !== 'blank') return;
+          currentIdx = bi;
+          hint.classList.add('active');
+          ans.classList.add('visible');
+          showFeedback('','');
+          setTimeout(() => {
+            ans.focus();
+            hint.scrollIntoView({ behavior:'smooth', block:'center' });
+          }, 40);
+        };
+        hint.addEventListener('click', openAns);
+        hint.addEventListener('touchend', e => { e.preventDefault(); openAns(); });
+
+        // Wire answer input
+        ans.addEventListener('focus', () => { currentIdx = bi; });
+        ans.addEventListener('keydown', e => {
+          if (e.key === 'Enter') { e.preventDefault(); checkFL(bi, ans, hint, result); }
+        });
+        ans.addEventListener('input', () => {
+          const v = ans.textContent.trim();
+          if (norm(v).length >= norm(line).length - 2 && norm(v) === norm(line)) {
+            setTimeout(() => checkFL(bi, ans, hint, result), 80);
+          }
+        });
+
+        blanks.push({ answer:line, el:hint, ans, result, state:'blank', type:'fl' });
+        container.appendChild(hint);
+        container.appendChild(ans);
+        container.appendChild(result);
+      }
+    });
+  });
+
+  updateStats();
+}
+
+/* Wire a contenteditable blank (word or line) */
+function wireEditable(el, bi, type) {
+  el.addEventListener('focus', () => {
+    if (blanks[bi].state !== 'blank') return;
+    currentIdx = bi;
+    showFeedback('','');
+  });
+  el.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); checkEditable(bi); }
+    // Block newlines in word blanks
+    if (type === 'word' && (e.key === 'Enter' || e.key === 'Return')) e.preventDefault();
+  });
+  el.addEventListener('input', () => {
+    if (type !== 'word') return;
+    const v = el.textContent.trim();
+    if (norm(v) === norm(blanks[bi].answer)) {
+      setTimeout(() => checkEditable(bi), 80);
+    }
+  });
+  el.addEventListener('paste', e => {
+    e.preventDefault();
+    const text = (e.clipboardData||window.clipboardData).getData('text/plain');
+    document.execCommand('insertText', false, text);
+  });
+}
+
+function checkEditable(bi) {
+  const b = blanks[bi];
+  if (!b || b.state !== 'blank') return;
+  const val = b.el.textContent.trim();
+  if (!val) return;
+
+  if (norm(val) === norm(b.answer)) {
+    lockBlank(bi, 'correct', b.answer);
+    correct++;
+    showFeedback('Correct!', 'good');
+    currentIdx = null;
+    updateStats();
+    advanceToNext(bi);
+  } else {
+    b.el.classList.add('wrong');
+    setTimeout(() => b.el.classList.remove('wrong'), 320);
+    wrong++;
+    showFeedback('Not quite — try again, or tap Skip', 'bad');
+    // Select all for easy retyping
+    const range = document.createRange();
+    range.selectNodeContents(b.el);
+    const sel = window.getSelection();
+    if (sel) { sel.removeAllRanges(); sel.addRange(range); }
+    updateStats();
+  }
+}
+
+function checkFL(bi, ansEl, hintEl, resultEl) {
+  const b = blanks[bi];
+  if (!b || b.state !== 'blank') return;
+  const val = ansEl.textContent.trim();
+  if (!val) return;
+
+  if (norm(val) === norm(b.answer)) {
+    b.state = 'correct';
+    hintEl.classList.remove('active');
+    hintEl.classList.add('done');
+    ansEl.classList.remove('visible');
+    ansEl.contentEditable = 'false';
+    resultEl.className = 'fl-result correct';
+    resultEl.textContent = b.answer;
+    correct++;
+    showFeedback('Correct!', 'good');
+    currentIdx = null;
+    updateStats();
+    advanceToNext(bi);
+  } else {
+    hintEl.classList.add('wrong');
+    setTimeout(() => hintEl.classList.remove('wrong'), 320);
+    wrong++;
+    showFeedback('Not quite — try again, or tap Skip', 'bad');
+    ansEl.textContent = '';
+    ansEl.focus();
+    updateStats();
+  }
+}
+
+function lockBlank(bi, state, text) {
+  const b = blanks[bi];
+  b.state = state;
+  b.el.contentEditable = 'false';
+  b.el.textContent = text;
+  const base = b.el.className.split(' ')[0];
+  b.el.className = base + ' ' + state;
+}
+
+function advanceToNext(fromBi) {
+  // Find next blank after current position, wrap around if needed
+  let next = blanks.findIndex((b,i) => b.state === 'blank' && i > fromBi);
+  if (next === -1) next = blanks.findIndex(b => b.state === 'blank');
+
+  if (next === -1) {
+    hideFeedback();
+    showFinish();
+    return;
+  }
+
+  const b = blanks[next];
+  setTimeout(() => {
+    if (b.type === 'fl') {
+      // Simulate tap on the hint to open the answer box
+      currentIdx = next;
+      b.el.classList.add('active');
+      b.ans.classList.add('visible');
+      b.ans.focus();
+      b.el.scrollIntoView({ behavior:'smooth', block:'center' });
+    } else {
+      // Focus directly into the contenteditable — keyboard stays up
+      b.el.textContent = '';
+      b.el.focus();
+      currentIdx = next;
+      const rect = b.el.getBoundingClientRect();
+      if (rect.top < 80 || rect.bottom > window.innerHeight - 60) {
+        b.el.scrollIntoView({ behavior:'smooth', block:'center' });
+      }
+    }
+  }, 60);
+}
+
+function skipCurrent() {
+  if (currentIdx === null) return;
+  const bi = currentIdx;
+  const b = blanks[bi];
+  if (!b || b.state !== 'blank') return;
+
+  if (b.type === 'fl') {
+    b.state = 'revealed';
+    b.el.classList.remove('active');
+    b.el.classList.add('done');
+    b.ans.classList.remove('visible');
+    b.ans.contentEditable = 'false';
+    b.result.className = 'fl-result revealed';
+    b.result.textContent = b.answer;
+  } else {
+    lockBlank(bi, 'revealed', b.answer);
+  }
+
+  currentIdx = null;
+  showFeedback('','');
+  updateStats();
+  advanceToNext(bi);
+}
+
+function showFeedback(msg, cls) {
+  const bar = document.getElementById('feedback-bar');
+  const txt = document.getElementById('fb-text');
+  bar.classList.remove('hidden');
+  txt.textContent = msg;
+  txt.className = cls || '';
+}
+function hideFeedback() {
+  document.getElementById('feedback-bar').classList.add('hidden');
+}
+
+function updateStats() {
+  const rem = blanks.filter(b => b.state === 'blank').length;
+  document.getElementById('s-correct').textContent = correct;
+  document.getElementById('s-wrong').textContent   = wrong;
+  document.getElementById('s-left').textContent    = rem;
+  const total = blanks.length;
+  document.getElementById('prog').style.width = total ? Math.round((total-rem)/total*100)+'%' : '0%';
+}
+
+function showFinish() {
+  const total = blanks.length;
+  const pct = total ? Math.round(correct/total*100) : 0;
+  document.getElementById('finish-title').textContent =
+    pct===100 ? 'Perfect score!' : pct>=70 ? 'Great job!' : 'Keep practising';
+  document.getElementById('finish-msg').textContent =
+    pct===100 ? 'Every blank nailed. Try a harder mode!'
+              : correct+' of '+total+' correct ('+pct+'%). Run it again!';
+  const card = document.getElementById('finish');
+  card.classList.add('show');
+  setTimeout(() => card.scrollIntoView({ behavior:'smooth', block:'center' }), 100);
+}
+
+renderLyrics();
+</script>
+</body>
+</html>
