@@ -88,7 +88,7 @@ body {
   white-space: nowrap; overflow: hidden;
 }
 .word-blank:empty::before {
-  content: attr(data-hint); color: var(--text3); font-style: italic; pointer-events: none;
+  content: ''; pointer-events: none;
 }
 .word-blank:focus   { background: #fff8f0; border-color: var(--accent); }
 .word-blank.correct { background: var(--green-bg); border-color: var(--green-border); color: var(--green); font-weight: 500; cursor: default; pointer-events: none; }
@@ -349,7 +349,7 @@ function renderLyrics() {
             const el = document.createElement('span');
             el.className = 'word-blank';
             el.contentEditable = 'true';
-            el.setAttribute('data-hint', w[0]+'…');
+            
             el.setAttribute('autocorrect','off');
             el.setAttribute('autocapitalize','off');
             el.setAttribute('spellcheck','false');
